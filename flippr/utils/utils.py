@@ -1,4 +1,5 @@
 import boto3
+import os
 
 def write_file_to_s3(config, filename):
 
@@ -8,7 +9,10 @@ def write_file_to_s3(config, filename):
     :param csv_filename: filename for local and remote
     :return:
     """
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3",
+                      aws_access_key_id = config['aws']['access_key'],
+                      aws_secret_access_key = config['aws']['secret']
+                      )
     s3.upload_file(filename, config['s3']['bucket'], os.path.join(config['s3']['prefix'], filename))
 
 def df_to_s3(config, input_df, filename):

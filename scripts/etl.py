@@ -3,6 +3,10 @@ from flippr.utils.handlers import spotify_handler
 import os
 
 config = {
+    'aws': {
+        'access_key': os.getenv('AWS_ACCESS_KEY'),
+        'secret': os.getenv('AWS_SECRET')
+    },
     's3': {
         'bucket': 'flippr-data',
         'prefix': os.path.join('spotify', str(dt.date.today()))
