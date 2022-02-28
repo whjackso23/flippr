@@ -1,5 +1,5 @@
 import datetime as dt
-from flippr.utils.handlers import spotify_handler
+from flippr.utils.handlers import spotify_handler, ticketmaster_handler
 import os
 
 config = {
@@ -9,7 +9,8 @@ config = {
     },
     's3': {
         'bucket': 'flippr-data',
-        'prefix': os.path.join('spotify', str(dt.date.today()))
+        'spotify_prefix': os.path.join('spotify', str(dt.date.today())),
+        'ticketmaster_prefix': os.path.join('ticketmaster', str(dt.date.today()))
     },
     'spotify': {
         'client_id': os.getenv('SPOTIFY_CLIENT_ID'),
@@ -34,3 +35,4 @@ if __name__ == '__main__':
     ]
 
     spotify_handler(config, spotify_playlists)
+    ticketmaster_handler(config)

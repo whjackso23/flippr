@@ -10,8 +10,8 @@ def write_file_to_s3(config, filename):
     :return:
     """
     s3 = boto3.client("s3",
-                      aws_access_key_id = config['aws']['access_key'],
-                      aws_secret_access_key = config['aws']['secret']
+                      aws_access_key_id=config['aws']['access_key'],
+                      aws_secret_access_key=config['aws']['secret']
                       )
     s3.upload_file(filename, config['s3']['bucket'], os.path.join(config['s3']['prefix'], filename))
 
@@ -30,3 +30,19 @@ def df_to_s3(config, input_df, filename):
 
     write_file_to_s3(config, outfile)
     os.remove(outfile)
+
+def download_file_from_s3(config, filename):
+
+    """
+
+    :param config:
+    :param filename:
+    :return:
+    """
+
+    s3 = boto3.client("s3",
+                      aws_access_key_id=config['aws']['access_key'],
+                      aws_secret_access_key=config['aws']['secret']
+                      )
+
+    s3.download_file(filename, config['s3']['bucket'], os.path.join(config['s3']['prefix'], filename), filename)
