@@ -27,7 +27,7 @@ config = {
     'date': {
         'current': str(dt.date.today())
     },
-    'sample': True
+    'sample': False
 }
 
 if __name__ == '__main__':
