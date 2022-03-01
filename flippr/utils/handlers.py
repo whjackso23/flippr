@@ -52,6 +52,10 @@ def ticketmaster_handler(config):
     # Download the file from S3
     download_file_from_s3(config, 'spotify_artists.csv')
     artist_df = pd.read_csv('spotify_artists.csv')
+
+    if config['sample']:
+        artist_df = artist_df.head(5)
+
     # change config to use ticketmaster prefix
     config['s3']['prefix'] = config['s3']['ticketmaster_prefix']
     # initialize empty dataframe
