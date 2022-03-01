@@ -49,6 +49,6 @@ if __name__ == '__main__':
         'ticketmaster'
     ]
 
-    # spotify_handler(config, spotify_playlists)
+    spotify_handler(config, spotify_playlists)
     ticketmaster_handler(config)
     cross_platform_event_df(config, platforms)
