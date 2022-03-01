@@ -1,5 +1,5 @@
 import datetime as dt
-from flippr.utils.handlers import spotify_handler, ticketmaster_handler
+from flippr.utils.handlers import spotify_handler, ticketmaster_handler, cross_platform_event_df
 import os
 
 config = {
@@ -9,12 +9,23 @@ config = {
     },
     's3': {
         'bucket': 'flippr-data',
+        'agg_prefix': os.path.join('aggregate'),
         'spotify_prefix': os.path.join('spotify', str(dt.date.today())),
         'ticketmaster_prefix': os.path.join('ticketmaster', str(dt.date.today()))
     },
     'spotify': {
         'client_id': os.getenv('SPOTIFY_CLIENT_ID'),
         'client_secret': os.getenv('SPOTIFY_CLIENT_SECRET')
+    },
+    'ticketmaster': {
+        'keys': [
+            'h5iegjzzInrhbZp7GuyitYH7p0IBNuPq',
+            'BWD804PIoCjc6qiOZsaeaqtWXGPCfF0t',
+            'OMALrjApeEcrYSaFTVYfh9NtxWKaqS5X'
+        ],
+    },
+    'date': {
+        'current': str(dt.date.today())
     }
 }
 
@@ -34,5 +45,10 @@ if __name__ == '__main__':
         {'title': 'pollen', 'id': '37i9dQZF1DWWBHeXOYZf74'}
     ]
 
-    spotify_handler(config, spotify_playlists)
+    platforms = [
+        'ticketmaster'
+    ]
+
+    # spotify_handler(config, spotify_playlists)
     ticketmaster_handler(config)
+    cross_platform_event_df(config, platforms)

@@ -1,5 +1,7 @@
 import boto3
 import os
+import requests
+import time
 
 def write_file_to_s3(config, filename):
 
@@ -44,5 +46,66 @@ def download_file_from_s3(config, filename):
                       aws_access_key_id=config['aws']['access_key'],
                       aws_secret_access_key=config['aws']['secret']
                       )
+    print(f"downloading {config['s3']['bucket']}/{os.path.join(config['s3']['prefix'])}/{filename}")
+    s3.download_file(config['s3']['bucket'], os.path.join(config['s3']['prefix'], filename), filename)
 
-    s3.download_file(filename, config['s3']['bucket'], os.path.join(config['s3']['prefix'], filename), filename)
+
+def ticketmaster_keyword_request(string, keyword, keys, key_idx):
+
+    """
+    fucntion to request data from ticketmaster endpoint
+    :param string:
+    :param key:
+    :return:
+    """
+    try:
+        key = keys[key_idx]
+    except IndexError:
+        print('Out of keys! Make a new app in Ticketmaster')
+        return None
+    response = requests.get(string.format(keyword, key))
+    if 'fault' in response.json():
+        print('THERE IS A FAULT IN THE KEYWORD QUERY!!')
+        print(response.json())
+        if response.json()['fault']['detail']['errorcode'] == 'policies.ratelimit.SpikeArrestViolation':
+            time.sleep(10)
+            return ticketmaster_keyword_request(string, keyword, keys, key_idx)
+        else:
+            key_idx = key_idx+1
+            print(f'new key_idx is {key_idx}')
+            return ticketmaster_keyword_request(string, keyword, keys, key_idx)
+    else:
+        return response.json()
+
+def ticketmaster_event_request(string, event, keys, key_idx):
+
+    """
+    fucntion to request data from ticketmaster endpoint
+    :param string:
+    :param key:
+    :return:
+    """
+    try:
+        key = keys[key_idx]
+    except IndexError:
+        print('Out of keys! Make a new app in Ticketmaster')
+        return None
+    response = requests.get(string.format(event['id'], key))
+    if 'fault' in response.json():
+        print('THERE IS A FAULT IN THE EVENT DETAIL QUERY!!')
+        print(response.json())
+        if response.json()['fault']['detail']['errorcode'] == 'policies.ratelimit.SpikeArrestViolation':
+            print('Just waiting 10 seconds to avoid the ratelimit error')
+            time.sleep(10)
+            return ticketmaster_event_request(string, event, keys, key_idx)
+        if response.json()['fault']['detail']['errorcode'] == 'messaging.adaptors.http.flow.GatewayTimeout':
+            print('Gateway timeout, trying again')
+            time.sleep(10)
+            return ticketmaster_event_request(string, event, keys, key_idx)
+        else:
+            print('Switching key')
+            key_idx = key_idx+1
+            print(f'new key_idx is {key_idx}')
+            return ticketmaster_event_request(string, event, keys, key_idx)
+    else:
+        return key_idx, response.json()
