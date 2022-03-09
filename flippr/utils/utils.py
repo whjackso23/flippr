@@ -3,7 +3,7 @@ import os
 import requests
 import time
 
-def write_file_to_s3(config, filename):
+def write_file_to_s3(config, prefix, filename):
 
     """
     write a file to s3
@@ -15,9 +15,9 @@ def write_file_to_s3(config, filename):
                       aws_access_key_id=config['aws']['access_key'],
                       aws_secret_access_key=config['aws']['secret']
                       )
-    s3.upload_file(filename, config['s3']['bucket'], os.path.join(config['s3']['prefix'], filename))
+    s3.upload_file(filename, config['s3']['bucket'], os.path.join(config['s3'][f'{prefix}_prefix'], filename))
 
-def df_to_s3(config, input_df, filename):
+def df_to_s3(config, prefix, input_df, filename):
 
     """
     ingest a dataframe and a csv filename, write that dataframe to S3 with that filename
@@ -30,10 +30,10 @@ def df_to_s3(config, input_df, filename):
     input_df.to_csv(outfile, index=False)
     print("Data written to {}".format(outfile))
 
-    write_file_to_s3(config, outfile)
+    write_file_to_s3(config, prefix, outfile)
     os.remove(outfile)
 
-def download_file_from_s3(config, filename):
+def download_file_from_s3(config, prefix, filename):
 
     """
 
@@ -46,8 +46,8 @@ def download_file_from_s3(config, filename):
                       aws_access_key_id=config['aws']['access_key'],
                       aws_secret_access_key=config['aws']['secret']
                       )
-    print(f"downloading {config['s3']['bucket']}/{os.path.join(config['s3']['prefix'])}/{filename}")
-    s3.download_file(config['s3']['bucket'], os.path.join(config['s3']['prefix'], filename), filename)
+    print(f"downloading {config['s3']['bucket']}/{os.path.join(config['s3'][f'{prefix}_prefix'])}/{filename}")
+    s3.download_file(config['s3']['bucket'], os.path.join(config['s3'][f'{prefix}_prefix'], filename), filename)
 
 
 def ticketmaster_keyword_request(string, keyword, keys, key_idx):
