@@ -38,6 +38,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Collect daily ticket pricing data")
     parser.add_argument("--env", type=str, required=True)
+    parser.add_argument('--sample', action='store_true')
 
     spotify_playlists = [
         {'title': 'top_50_global', 'id': '37i9dQZEVXbNG2KDcFcKOF'},
@@ -61,8 +62,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = vars(args)
     config['s3']['bucket'] = f"flippr-{args_dict['env']}"
+    config['sample'] = args_dict['sample']
 
-    # spotify_handler(config, spotify_playlists)
-    # ticketmaster_handler(config)
+    spotify_handler(config, spotify_playlists)
+    ticketmaster_handler(config)
     seatgeek_handler(config)
-    # cross_platform_event_df(config, platforms)
+    cross_platform_event_df(config, platforms)

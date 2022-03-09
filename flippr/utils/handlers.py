@@ -54,6 +54,7 @@ def ticketmaster_handler(config):
     artist_df = pd.read_csv('spotify_artists.csv')
 
     if config['sample']:
+        print('Only taking a sample')
         artist_df = artist_df.head(5)
 
     # initialize empty dataframe
@@ -184,6 +185,10 @@ def seatgeek_handler(config):
     events_df = events_df[['ticketmaster_id', 'artist_keyword', 'city', 'state', 'start_date', 'start_dt']].drop_duplicates()
     events_df = events_df[events_df['start_dt'] >= dt.datetime.now()]
 
+    if config['sample']:
+        print('Only taking a sample')
+        events_df = events_df.head(5)
+
     # initialize empty dataframe
     full_df = pd.DataFrame()
     print(f'Beginning seatgeek data pull at {dt.datetime.now()}')
@@ -273,7 +278,6 @@ def cross_platform_event_df(config, platforms):
 
         # now download each platforms' results from today and append them to the aggregate df
         for platform in platforms:
-            print(platform)
             _filename = 'all_artists_upcoming_events.csv'
             try:
                 download_file_from_s3(config, platform, _filename)
@@ -284,10 +288,10 @@ def cross_platform_event_df(config, platforms):
 
             # append today's data to master aggregate df
             agg_df = pd.concat([agg_df, _df], axis=0)
-            print(f'Finished multi-source master file creation at {dt.datetime.now()}')
 
         # now store the aggregate and "today" aggregate files in s3
         df_to_s3(config, 'aggregate', agg_df, 'artists_events_prices.csv')
         df_to_s3(config, 'today_aggregate', agg_df, 'artists_events_prices.csv')
+        print(f'Finished multi-source master file creation at {dt.datetime.now()}')
 
     return
