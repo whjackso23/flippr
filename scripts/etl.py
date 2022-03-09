@@ -1,6 +1,7 @@
 import datetime as dt
-from flippr.utils.handlers import spotify_handler, ticketmaster_handler, cross_platform_event_df
+from flippr.utils.handlers import spotify_handler, ticketmaster_handler, cross_platform_event_df, seatgeek_handler
 import os
+import argparse
 
 config = {
     'aws': {
@@ -8,10 +9,10 @@ config = {
         'secret': os.getenv('AWS_SECRET')
     },
     's3': {
-        'bucket': 'flippr-data',
-        'agg_prefix': os.path.join('aggregate'),
+        'aggregate_prefix': os.path.join('aggregate'),
         'spotify_prefix': os.path.join('spotify', str(dt.date.today())),
-        'ticketmaster_prefix': os.path.join('ticketmaster', str(dt.date.today()))
+        'ticketmaster_prefix': os.path.join('ticketmaster', str(dt.date.today())),
+        'seatgeek_prefix': os.path.join('seatgeek', str(dt.date.today()))
     },
     'spotify': {
         'client_id': os.getenv('SPOTIFY_CLIENT_ID'),
@@ -24,6 +25,9 @@ config = {
             'OMALrjApeEcrYSaFTVYfh9NtxWKaqS5X'
         ],
     },
+    'seatgeek': {
+        'key' : 'MjU4NDgzMDR8MTY0NTc1NTAzMS4yODc2MzY1'
+    },
     'date': {
         'current': str(dt.date.today())
     },
@@ -31,6 +35,9 @@ config = {
 }
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description="Collect daily ticket pricing data")
+    parser.add_argument("--env", type=str, required=True)
 
     spotify_playlists = [
         {'title': 'top_50_global', 'id': '37i9dQZEVXbNG2KDcFcKOF'},
@@ -47,9 +54,15 @@ if __name__ == '__main__':
     ]
 
     platforms = [
-        'ticketmaster'
+        'ticketmaster',
+        'seatgeek'
     ]
 
-    spotify_handler(config, spotify_playlists)
-    ticketmaster_handler(config)
-    cross_platform_event_df(config, platforms)
+    args = parser.parse_args()
+    args_dict = vars(args)
+    config['s3']['bucket'] = f"flippr-{args_dict['env']}"
+
+    # spotify_handler(config, spotify_playlists)
+    # ticketmaster_handler(config)
+    seatgeek_handler(config)
+    # cross_platform_event_df(config, platforms)

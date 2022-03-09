@@ -6,6 +6,8 @@ import time
 import requests
 import botocore
 import datetime as dt
+import os
+import json
 
 def spotify_handler(config, playlists):
 
@@ -15,8 +17,7 @@ def spotify_handler(config, playlists):
     :param playlists:
     :return:
     """
-    # change config to use the spotify prefix
-    config['s3']['prefix'] = config['s3']['spotify_prefix']
+
     client_credentials_manager = SpotifyClientCredentials(config['spotify']['client_id'], config['spotify']['client_secret'])
     sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
     track_df = pd.DataFrame()
@@ -32,12 +33,13 @@ def spotify_handler(config, playlists):
                                         , 'artist_popularity': artist_data['popularity']
                                         , 'track_popularity': track['popularity']
                                         , 'playlist': target_playlist['title']
+                                        , 'image_url': artist_data['images'][0]['url']
                                      }])
                 track_df = pd.concat([track_df, _df], axis=0)
             except TypeError:
                 print(f'No data for this track in the playlist {target_playlist["title"]}')
         time.sleep(1)
-    df_to_s3(config, track_df, 'spotify_artists.csv')
+    df_to_s3(config, 'spotify', track_df, 'spotify_artists.csv')
     print(f'Finished Spotify target artist file creation at {dt.datetime.now()}')
     return
 
@@ -47,22 +49,20 @@ def ticketmaster_handler(config):
     :param config:
     :return:
     """
-    # change config to use the spotify prefix
-    config['s3']['prefix'] = config['s3']['spotify_prefix']
     # Download the file from S3
-    download_file_from_s3(config, 'spotify_artists.csv')
+    download_file_from_s3(config, 'spotify', 'spotify_artists.csv')
     artist_df = pd.read_csv('spotify_artists.csv')
 
     if config['sample']:
         artist_df = artist_df.head(5)
 
-    # change config to use ticketmaster prefix
-    config['s3']['prefix'] = config['s3']['ticketmaster_prefix']
     # initialize empty dataframe
     full_df = pd.DataFrame()
     # list to track which artists have already been queried
     artist_list = []
+    no_events_list = []
     key_idx = 0
+    print(f"Beginning Ticketmaster data pull at {dt.datetime.now()}")
     for _, row in artist_df.iterrows():
         artist = row['artist']
         exist_ind = artist_list.count(artist)
@@ -78,7 +78,8 @@ def ticketmaster_handler(config):
         try:
             res_json = res_json['_embedded']
         except KeyError:
-            print('No events for this artist in Ticketmaster')
+            print(f'No events for artist {artist} in Ticketmaster')
+            no_events_list.append(artist)
             continue
         search_df = pd.DataFrame()
         features = ['name', 'id']
@@ -101,7 +102,7 @@ def ticketmaster_handler(config):
                 event_df = event_df.sort_values(by=['start_date'])
                 # add each artists' upcoming show ticket price ranges to full df
                 full_df = pd.concat([full_df, event_df], axis=0)
-                df_to_s3(config, full_df, 'all_artists_upcoming_events.csv')
+                df_to_s3(config, 'ticketmaster', full_df, 'all_artists_upcoming_events.csv')
                 print('Aborted early due to query quota limit violations.. :(')
                 return
             # instantiate empty event dict to hold event data
@@ -112,8 +113,9 @@ def ticketmaster_handler(config):
                 event_dict['source'] = 'ticketmaster'
                 event_dict['artist_keyword'] = event['artist_keyword']
                 event_dict['name'] = res_json['name']
-                event_dict['id'] = res_json['id']
+                event_dict['ticketmaster_id'] = res_json['id']
                 event_dict['city'] = res_json['_embedded']['venues'][0]['city']['name']
+                event_dict['venue_name'] = res_json['_embedded']['venues'][0]['name']
                 event_dict['job_date'] = config['date']['current']
 
                 try:
@@ -159,9 +161,88 @@ def ticketmaster_handler(config):
         # add each artists' upcoming show ticket price ranges to full df
         full_df = pd.concat([full_df, event_df], axis=0)
     # write full dataframe to s3
-    df_to_s3(config, full_df, 'all_artists_upcoming_events.csv')
+    df_to_s3(config, 'ticketmaster', full_df, 'all_artists_upcoming_events.csv')
     print(f'Finished Ticketmaster target artist event details file creation at {dt.datetime.now()}')
     return
+
+def seatgeek_handler(config):
+
+    """
+    gather seatgeek data
+    :param config:
+    :return:
+    """
+
+    try:
+        # Download the file from S3
+        download_file_from_s3(config, 'aggregate', 'artists_events_prices.csv')
+    except botocore.exceptions.ClientError:
+        print('Seatgeek needs an aggregate file to run...try again tomorrow once Ticketmaster finishes!')
+        return
+    events_df = pd.read_csv('artists_events_prices.csv')
+    events_df['start_dt'] = events_df['start_date'].astype('datetime64[ns]')
+    events_df = events_df[['ticketmaster_id', 'artist_keyword', 'city', 'state', 'start_date', 'start_dt']].drop_duplicates()
+    events_df = events_df[events_df['start_dt'] >= dt.datetime.now()]
+
+    # initialize empty dataframe
+    full_df = pd.DataFrame()
+    print(f'Beginning seatgeek data pull at {dt.datetime.now()}')
+    for _, row in events_df.iterrows():
+        artist_keyword = str(row['artist_keyword']).replace(' ', '-').replace('&', '')
+        event_date = row['start_date']
+        response = requests.get(
+            f"https://api.seatgeek.com/2/events?client_id={config['seatgeek']['key']}&performers.slug={artist_keyword}&datetime_utc={event_date}")
+        if response.status_code != 200:
+            print(response)
+            print(response.status_code)
+            print(f"response status is not 200...somethings wrong!")
+            print('')
+            continue
+        try:
+            query_response = response.json()
+        except json.decoder.JSONDecodeError:
+            print('JSON ERROR ON QUERY')
+            continue
+        try:
+            for event in query_response['events']:
+                event_dict = {}
+                event_response = requests.get(
+                    f"https://api.seatgeek.com/2/events/{event['id']}?client_id={config['seatgeek']['key']}")
+                if response.status_code != 200:
+                    print(response)
+                    print(response.status_code)
+                    print(f"response status is not 200...somethings wrong!")
+                    print('')
+                    continue
+                try:
+                    event_response_data = event_response.json()
+                except json.decoder.JSONDecodeError:
+                    print('JSON ERROR ON EVENT')
+                    continue
+                event_dict['job_date'] = config['date']['current']
+                event_dict['ticketmaster_id'] = row['ticketmaster_id']
+                event_dict['seatgeek_id'] = event['id']
+                event_dict['source'] = 'seatgeek'
+                event_dict['artist_keyword'] = row['artist_keyword']
+                event_dict['name'] = event_response_data['title']
+                event_dict['start_date'] = row['start_date']
+                event_dict['city'] = event_response_data['venue']['city']
+                event_dict['state'] = event_response_data['venue']['state']
+                event_dict['venue_name'] = event_response_data['venue']['name']
+                event_dict['min_price'] = event_response_data['stats']['lowest_price']
+                event_dict['max_price'] = event_response_data['stats']['highest_price']
+                event_dict['ticket_count'] = event_response_data['stats']['listing_count']
+                event_dict['average_price'] = event_response_data['stats']['average_price']
+                event_dict['median_price'] = event_response_data['stats']['median_price']
+                event_dict['ticket_bucket_counts'] = event_response_data['stats']['dq_bucket_counts']
+                _df = pd.DataFrame([event_dict])
+                full_df = pd.concat([full_df, _df], axis=0)
+        except KeyError:
+            print('')
+            print(f"Event {artist_keyword} doesnt exist in Seatgeek :/")
+    # write full dataframe to s3
+    df_to_s3(config, 'seatgeek', full_df, 'all_artists_upcoming_events.csv')
+    return full_df
 
 def cross_platform_event_df(config, platforms):
 
@@ -170,24 +251,43 @@ def cross_platform_event_df(config, platforms):
 
     :return:
     """
-    for platform in platforms:
-        # get most recent daily run of all artist upcoming events
-        config['s3']['prefix'] = config['s3'][f'{platform}_prefix']
-        _filename = 'all_artists_upcoming_events.csv'
-        download_file_from_s3(config, _filename)
-        _df = pd.read_csv(_filename)
-        # change config to use aggregate prefix
-        config['s3']['prefix'] = config['s3']['agg_prefix']
-        _filename = 'artists_events_prices.csv'
+
+    # change config to use aggregate prefix
+    config['s3']['today_aggregate_prefix'] = os.path.join(config['s3']['aggregate_prefix'], str(dt.date.today()))
+    _filename = 'artists_events_prices.csv'
+
+    # check if the aggregate job has already been run. If so return
+    try:
+        download_file_from_s3(config, 'today_aggregate', _filename)
+        print('Aggregate job has already been run!')
+        return
+    # if this triggers then the job hasn't been run and we can proceed!
+    except botocore.exceptions.ClientError:
         # check if the aggregate file exists at all yet, create it if not
         try:
-            download_file_from_s3(config, _filename)
+            download_file_from_s3(config, 'aggregate', _filename)
             agg_df = pd.read_csv(_filename)
         except botocore.exceptions.ClientError:
             print('File doesnt exist, creating it now!')
             agg_df = pd.DataFrame()
-        # append today's data to master aggregate df
-        agg_df = pd.concat([agg_df, _df], axis=0)
-        print(f'Finished multi-source master file creation at {dt.datetime.now()}')
-        df_to_s3(config, agg_df, 'artists_events_prices.csv')
-        return
+
+        # now download each platforms' results from today and append them to the aggregate df
+        for platform in platforms:
+            print(platform)
+            _filename = 'all_artists_upcoming_events.csv'
+            try:
+                download_file_from_s3(config, platform, _filename)
+                _df = pd.read_csv(_filename)
+            except botocore.exceptions.ClientError:
+                print(f"File {_filename} not found!")
+                continue
+
+            # append today's data to master aggregate df
+            agg_df = pd.concat([agg_df, _df], axis=0)
+            print(f'Finished multi-source master file creation at {dt.datetime.now()}')
+
+        # now store the aggregate and "today" aggregate files in s3
+        df_to_s3(config, 'aggregate', agg_df, 'artists_events_prices.csv')
+        df_to_s3(config, 'today_aggregate', agg_df, 'artists_events_prices.csv')
+
+    return
