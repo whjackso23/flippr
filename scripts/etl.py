@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Collect daily ticket pricing data")
     parser.add_argument("--env", type=str, required=True)
-    parser.add_argument('--sample', action='store_true')
+    parser.add_argument('--sample', type=int, default=100)
 
     spotify_playlists = [
         {'title': 'top_50_global', 'id': '37i9dQZEVXbNG2KDcFcKOF'},

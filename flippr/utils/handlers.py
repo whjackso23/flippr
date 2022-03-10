@@ -53,9 +53,9 @@ def ticketmaster_handler(config):
     download_file_from_s3(config, 'spotify', 'spotify_artists.csv')
     artist_df = pd.read_csv('spotify_artists.csv')
 
-    if config['sample']:
+    if config['sample'] <100:
         print('Only taking a sample')
-        artist_df = artist_df.head(5)
+        artist_df = artist_df.head(config['sample'])
 
     # initialize empty dataframe
     full_df = pd.DataFrame()
@@ -108,6 +108,7 @@ def ticketmaster_handler(config):
                 return
             # instantiate empty event dict to hold event data
             event_dict = {}
+
             # fill event dict with fields
             try:
                 # critical fields
@@ -119,6 +120,7 @@ def ticketmaster_handler(config):
                 event_dict['venue_name'] = res_json['_embedded']['venues'][0]['name']
                 event_dict['job_date'] = config['date']['current']
 
+                # try to get event start date
                 try:
                     event_dict['start_date'] = res_json['dates']['start']['dateTime']
                 except KeyError:
@@ -129,6 +131,27 @@ def ticketmaster_handler(config):
                     event_dict['state'] = res_json['_embedded']['venues'][0]['state']['stateCode']
                 except KeyError:
                     event_dict['state'] = ''
+
+                # try to get sales start / end date data
+                try:
+                    event_dict['public_sale_start_date'] = res_json['sales']['public']['startDateTime']
+                    event_dict['public_sale_end_date'] = res_json['sales']['public']['endDateTime']
+                    event_dict['pending_ind'] = res_json['sales']['public']['startTBD']
+                except KeyError:
+                    event_dict['public_sale_start_date'] = ''
+                    event_dict['public_sale_end_date'] = ''
+                    event_dict['pending_ind'] = ''
+
+                # try to get presale info
+                try:
+                    event_dict['presale_start_date'] = res_json['sales']['presales'][0]['startDateTime']
+                    event_dict['presale_end_date'] = res_json['sales']['presales'][0]['endDateTime']
+                    event_dict['presale_link'] = res_json['sales']['presalse']['url']
+                except KeyError:
+                    event_dict['presale_start_date'] = ''
+                    event_dict['presale_end_date'] = ''
+                    event_dict['presale_link'] = ''
+
                 # try to get price data, fall back to empty if none exist
                 try:
                     for price_data in res_json['priceRanges']:
@@ -185,9 +208,9 @@ def seatgeek_handler(config):
     events_df = events_df[['ticketmaster_id', 'artist_keyword', 'city', 'state', 'start_date', 'start_dt']].drop_duplicates()
     events_df = events_df[events_df['start_dt'] >= dt.datetime.now()]
 
-    if config['sample']:
+    if config['sample'] < 100:
         print('Only taking a sample')
-        events_df = events_df.head(5)
+        events_df = events_df.head(config['sample'])
 
     # initialize empty dataframe
     full_df = pd.DataFrame()
