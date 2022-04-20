@@ -2,6 +2,8 @@ import boto3
 import os
 import requests
 import time
+import base64
+import json
 
 def write_file_to_s3(config, prefix, filename):
 
@@ -109,3 +111,46 @@ def ticketmaster_event_request(string, event, keys, key_idx):
             return ticketmaster_event_request(string, event, keys, key_idx)
     else:
         return key_idx, response.json()
+
+
+class keys:
+    """
+
+    STREAMLINE RETREIVAL OF STUBHUB ACCESS TOKENS BY PASSING THIS CLASS EACH ACCOUNT'S
+    - KEY
+    - SECRET
+    - USERNAME
+    - PASSWORD
+
+    """
+
+    def __init__(self, key, secret, username, password):
+        self.key_encode = (base64.standard_b64encode(key + b":" + secret)).decode("utf-8")
+
+        base_url = 'https://api.stubhub.com/sellers/oauth/accesstoken'
+        query_params = 'grant_type=client_credentials'
+        request_url = (base_url + "?" + query_params)
+        print('Basic ' + (base64.standard_b64encode(key + b":" + secret)).decode("utf-8"))
+        header_auth = ('Basic ' + (base64.standard_b64encode(key + b":" + secret)).decode("utf-8"))
+
+        payload = {"username": username, "password": password}
+        headers = {"Authorization": header_auth, "Content-Type": "application/json"}
+
+        req = requests.post(request_url, data=json.dumps(payload), headers=headers)
+        json_obj = req.json()
+        print(json_obj)
+        self.token = json_obj['access_token']
+
+
+
+def get_stubhub_keys():
+    """INITIALIZE EACH OF THE 5 INSTANCES OF THE CLASS 'KEYS'"""
+    token1 = keys(b'zz5xHP3Miax2zeo9fnKivFSPGmWsLiSv', b'G4j3RRmpBxo8jM7s', 'whjackso23@gmail.com', 'HesterVasher#3123')
+    token2 = keys(b'mwrKyXKBADj7gqY2jqmjAkXFpMgr0u5p', b'GF96v7mWwUDY5fnV', 'hiltonsounds@gmail.com', 'Hester3123')
+    token3 = keys(b'hf0bANqvcOAJxqhoAccKEI9ulv2oovef', b'aOOlKPrTckv6iJPU', 'edenk@g.clemson.edu', 'Hester3123')
+    token4 = keys(b'Q53rXMFZn9FfQuxNJhYJAPhbxFTDpH59', b'pQSLJvFEuk2AoHqG', 'will@pipeline.glass', 'Hester3123')
+    token5 = keys(b'uyoddTC6PL6ZIGaMkirj64bFRvLbMoDY', b'Ok4sujJFfhvYIT7W', 'sunglassman3123@gmail.com', 'Hester3123')
+
+    tokens = [token1, token2, token3, token4, token5]
+
+    return tokens

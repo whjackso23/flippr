@@ -1,6 +1,6 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
-from flippr.utils.utils import df_to_s3, download_file_from_s3, ticketmaster_keyword_request, ticketmaster_event_request
+from flippr.utils.utils import df_to_s3, download_file_from_s3, ticketmaster_keyword_request, ticketmaster_event_request, get_stubhub_keys
 import pandas as pd
 import time
 import requests
@@ -271,6 +271,17 @@ def seatgeek_handler(config):
     # write full dataframe to s3
     df_to_s3(config, 'seatgeek', full_df, 'all_artists_upcoming_events.csv')
     return full_df
+
+def stubhub_handler(config):
+
+    """
+    get data from stubhub events
+
+    :return:
+    """
+
+    get_stubhub_keys()
+
 
 def cross_platform_event_df(config, platforms):
 

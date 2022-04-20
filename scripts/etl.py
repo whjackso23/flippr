@@ -1,5 +1,5 @@
 import datetime as dt
-from flippr.utils.handlers import spotify_handler, ticketmaster_handler, cross_platform_event_df, seatgeek_handler
+from flippr.utils.handlers import spotify_handler, ticketmaster_handler, cross_platform_event_df, seatgeek_handler, stubhub_handler
 import os
 import argparse
 
@@ -64,7 +64,8 @@ if __name__ == '__main__':
     config['s3']['bucket'] = f"flippr-{args_dict['env']}"
     config['sample'] = args_dict['sample']
 
-    spotify_handler(config, spotify_playlists)
-    ticketmaster_handler(config)
-    seatgeek_handler(config)
-    cross_platform_event_df(config, platforms)
+    # spotify_handler(config, spotify_playlists)
+    # ticketmaster_handler(config)
+    # seatgeek_handler(config)
+    stubhub_handler(config)
+    # cross_platform_event_df(config, platforms)
