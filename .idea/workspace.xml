@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="942308c4-732f-498b-ba84-d7c302485c7b" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/flippr/utils/eda.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/scripts/eda.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flippr/utils/handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/flippr/utils/handlers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flippr/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/flippr/utils/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/etl.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/etl.py" afterDir="false" />
-    </list>
+    <list default="true" id="942308c4-732f-498b-ba84-d7c302485c7b" name="Default Changelist" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -51,7 +44,7 @@
       <workItem from="1646850672959" duration="9043000" />
       <workItem from="1650420473086" duration="13785000" />
       <workItem from="1651452741332" duration="311000" />
-      <workItem from="1651453101215" duration="12716000" />
+      <workItem from="1651453101215" duration="13413000" />
     </task>
     <servers />
   </component>
