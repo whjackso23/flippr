@@ -1,5 +1,5 @@
 import datetime as dt
-from flippr.utils.handlers import spotify_handler, ticketmaster_handler, cross_platform_event_df, seatgeek_handler
+from flippr.utils.handlers import spotify_handler, ticketmaster_handler, cross_platform_event_df, seatgeek_handler, stubhub_handler
 import os
 import argparse
 
@@ -12,7 +12,8 @@ config = {
         'aggregate_prefix': os.path.join('aggregate'),
         'spotify_prefix': os.path.join('spotify', str(dt.date.today())),
         'ticketmaster_prefix': os.path.join('ticketmaster', str(dt.date.today())),
-        'seatgeek_prefix': os.path.join('seatgeek', str(dt.date.today()))
+        'seatgeek_prefix': os.path.join('seatgeek', str(dt.date.today())),
+        'stubhub_prefix': os.path.join('stubhub', str(dt.date.today()))
     },
     'spotify': {
         'client_id': os.getenv('SPOTIFY_CLIENT_ID'),
@@ -31,7 +32,6 @@ config = {
     'date': {
         'current': str(dt.date.today())
     },
-    'sample': False
 }
 
 if __name__ == '__main__':
@@ -64,7 +64,10 @@ if __name__ == '__main__':
     config['s3']['bucket'] = f"flippr-{args_dict['env']}"
     config['sample'] = args_dict['sample']
 
-    spotify_handler(config, spotify_playlists)
-    ticketmaster_handler(config)
-    seatgeek_handler(config)
-    cross_platform_event_df(config, platforms)
+    # spotify_handler(config, spotify_playlists)
+    # ticketmaster_handler(config)
+    # seatgeek_handler(config)
+    # stubhub_handler(config)
+    # cross_platform_event_df(config, platforms)
+
+

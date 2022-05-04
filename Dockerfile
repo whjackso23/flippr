@@ -13,4 +13,4 @@ COPY . flippr
 WORKDIR flippr
 RUN pip install -e .
 
-ENTRYPOINT ["python", "scripts/etl.py"]
+ENTRYPOINT ["python", "scripts/eda.py"]

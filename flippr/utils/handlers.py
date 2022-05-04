@@ -1,6 +1,6 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
-from flippr.utils.utils import df_to_s3, download_file_from_s3, ticketmaster_keyword_request, ticketmaster_event_request
+from flippr.utils.utils import df_to_s3, download_file_from_s3, ticketmaster_keyword_request, ticketmaster_event_request, get_stubhub_keys, stubhub_event_request
 import pandas as pd
 import time
 import requests
@@ -270,6 +270,79 @@ def seatgeek_handler(config):
             print(f"Event {artist_keyword} doesnt exist in Seatgeek :/")
     # write full dataframe to s3
     df_to_s3(config, 'seatgeek', full_df, 'all_artists_upcoming_events.csv')
+    return full_df
+
+def stubhub_handler(config):
+
+    """
+    get data from stubhub events
+
+    :return:
+    """
+
+    keys = get_stubhub_keys()
+    key_idx = 0
+    try:
+        # Download the file from S3
+        download_file_from_s3(config, 'aggregate', 'artists_events_prices.csv')
+    except botocore.exceptions.ClientError:
+        print('Stubhub needs an aggregate file to run...try again tomorrow once Ticketmaster finishes!')
+        return
+
+    events_df = pd.read_csv('artists_events_prices.csv')
+    events_df['start_dt'] = events_df['start_date'].astype('datetime64[ns]')
+    events_df = events_df[['ticketmaster_id', 'artist_keyword', 'city', 'state', 'start_date', 'start_dt']].drop_duplicates()
+    events_df = events_df[events_df['start_dt'] >= dt.datetime.now()]
+
+    print(f"Searching for {str(len(events_df))} events")
+
+    if config['sample'] < 100:
+        events_df = events_df.head(config['sample'])
+
+    i = 0
+    for _, row in events_df.iterrows():
+        print(i)
+        i+=1
+        base_url = 'https://api.stubhub.com/sellers/search/events/v3'
+        artist_encode = row['artist_keyword'].replace(" ", "%20")
+        event_date = row['start_date'].replace(':', '%3A')
+        query_params = ("q=" + artist_encode + "&" + "date=" + event_date + "&" + "rows=100")
+        artist_url = (base_url + "?" + query_params)
+
+        key_idx, res_json = stubhub_event_request(artist_url, keys, key_idx)
+        # initialize empty dataframe
+        full_df = pd.DataFrame()
+        print(f"There are {str(len(res_json['events']))} events that match the query for {row['artist_keyword']} on date {row['start_date']}")
+        try:
+            event_list = res_json['events']
+            events_date_filter = list(filter(lambda event: dt.datetime.strptime(event['eventDateUTC'][:-5], '%Y-%m-%dT%H:%M:%S') == dt.datetime.strptime(row['start_date'][0:10] + 'T' + row['start_date'][11:19], '%Y-%m-%dT%H:%M:%S'), event_list))
+            print(f"After manual date matching, there are {str(len(events_date_filter))} events that match the query for {row['artist_keyword']} on date {row['start_date']}")
+
+            if len(events_date_filter) > 2:
+                print(events_date_filter)
+            for event in events_date_filter:
+                event_name = event['name']
+                event_dict = {}
+                if 'PARKING' not in event_name:
+                    event_dict['source'] = 'stubhub'
+                    event_dict['ticketmaster_id'] = row['ticketmaster_id']
+                    event_dict['start_date'] = row['start_date']
+                    event_dict['stubhub_id'] = str(event['id'])
+                    event_dict['venue_name']  = event['venue']['name']
+                    event_dict['venue_type'] = event['venue']['venueConfigName']
+                    event_dict['city']  = event['venue']['city']
+                    event_dict['state']  = event['venue']['state']
+                    event_dict['min_price']  = event['ticketInfo']['minListPrice']
+                    event_dict['max_price']  = event['ticketInfo']['maxListPrice']
+                    event_dict['ticket_count']  = event['ticketInfo']['totalTickets']
+                    event_dict['listing_count']  = event['ticketInfo']['totalListings']
+                    _df = pd.DataFrame([event_dict])
+                    full_df = pd.concat([full_df, _df], axis=0)
+        except KeyError:
+            print('')
+            print(f"Event {artist_encode} on date {event_date} doesnt exist in Stubhub :/")
+    # write full dataframe to s3
+    df_to_s3(config, 'stubhub', full_df, 'all_artists_upcoming_events.csv')
     return full_df
 
 def cross_platform_event_df(config, platforms):
