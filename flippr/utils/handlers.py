@@ -97,6 +97,7 @@ def ticketmaster_handler(config):
             event = dict(event)
             req_string = """https://app.ticketmaster.com/discovery/v2/events/{0}.json?apikey={1}"""
             key_idx, res_json = ticketmaster_event_request(req_string, event, config['ticketmaster']['keys'], key_idx)
+            print(res_json)
             if res_json is None:
                 print('Request quota exceeded')
                 # sort values
@@ -294,12 +295,12 @@ def stubhub_handler(config):
     events_df = events_df[['ticketmaster_id', 'artist_keyword', 'city', 'state', 'start_date', 'start_dt']].drop_duplicates()
     events_df = events_df[events_df['start_dt'] >= dt.datetime.now()]
 
-    print(f"Searching for {str(len(events_df))} events")
-
     if config['sample'] < 100:
         events_df = events_df.head(config['sample'])
 
     i = 0
+    # initialize empty dataframe
+    full_df = pd.DataFrame()
     for _, row in events_df.iterrows():
         print(i)
         i+=1
@@ -311,33 +312,39 @@ def stubhub_handler(config):
 
         key_idx, res_json = stubhub_event_request(artist_url, keys, key_idx)
         # initialize empty dataframe
-        full_df = pd.DataFrame()
-        print(f"There are {str(len(res_json['events']))} events that match the query for {row['artist_keyword']} on date {row['start_date']}")
+        event_df = pd.DataFrame()
+        # print(f"There are {str(len(res_json['events']))} events that match the query for {row['artist_keyword']} on date {row['start_date']}")
         try:
             event_list = res_json['events']
             events_date_filter = list(filter(lambda event: dt.datetime.strptime(event['eventDateUTC'][:-5], '%Y-%m-%dT%H:%M:%S') == dt.datetime.strptime(row['start_date'][0:10] + 'T' + row['start_date'][11:19], '%Y-%m-%dT%H:%M:%S'), event_list))
-            print(f"After manual date matching, there are {str(len(events_date_filter))} events that match the query for {row['artist_keyword']} on date {row['start_date']}")
+            # print(f"After manual date matching, there are {str(len(events_date_filter))} events that match the query for {row['artist_keyword']} on date {row['start_date']}")
+            events_parking_filter = list(filter(lambda event: 'PARKING' not in event['name'], events_date_filter))
+            # print(f"After removing parking-related events, there are {str(len(events_parking_filter))} events that match")
 
-            if len(events_date_filter) > 2:
-                print(events_date_filter)
-            for event in events_date_filter:
+            if len(events_parking_filter) > 2:
+                print(events_parking_filter)
+            for event in events_parking_filter:
                 event_name = event['name']
                 event_dict = {}
                 if 'PARKING' not in event_name:
+
                     event_dict['source'] = 'stubhub'
                     event_dict['ticketmaster_id'] = row['ticketmaster_id']
-                    event_dict['start_date'] = row['start_date']
                     event_dict['stubhub_id'] = str(event['id'])
-                    event_dict['venue_name']  = event['venue']['name']
+                    event_dict['artist_keyword'] = row['artist_keyword']
+                    event_dict['name'] = event_name
+                    event_dict['start_date'] = row['start_date']
+                    event_dict['venue_name'] = event['venue']['name']
                     event_dict['venue_type'] = event['venue']['venueConfigName']
-                    event_dict['city']  = event['venue']['city']
-                    event_dict['state']  = event['venue']['state']
-                    event_dict['min_price']  = event['ticketInfo']['minListPrice']
-                    event_dict['max_price']  = event['ticketInfo']['maxListPrice']
-                    event_dict['ticket_count']  = event['ticketInfo']['totalTickets']
-                    event_dict['listing_count']  = event['ticketInfo']['totalListings']
+                    event_dict['city'] = event['venue']['city']
+                    event_dict['state'] = event['venue']['state']
+                    event_dict['min_price'] = event['ticketInfo']['minListPrice']
+                    event_dict['max_price'] = event['ticketInfo']['maxListPrice']
+                    event_dict['ticket_count'] = event['ticketInfo']['totalTickets']
+                    event_dict['listing_count'] = event['ticketInfo']['totalListings']
                     _df = pd.DataFrame([event_dict])
-                    full_df = pd.concat([full_df, _df], axis=0)
+                    event_df = pd.concat([event_df, _df], axis=0)
+            full_df = pd.concat([full_df, event_df], axis=0)
         except KeyError:
             print('')
             print(f"Event {artist_encode} on date {event_date} doesnt exist in Stubhub :/")

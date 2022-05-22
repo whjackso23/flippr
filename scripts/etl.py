@@ -59,15 +59,19 @@ if __name__ == '__main__':
         'seatgeek'
     ]
 
+    countries = [
+        'US'
+    ]
+
     args = parser.parse_args()
     args_dict = vars(args)
     config['s3']['bucket'] = f"flippr-{args_dict['env']}"
     config['sample'] = args_dict['sample']
 
-    # spotify_handler(config, spotify_playlists)
-    # ticketmaster_handler(config)
-    # seatgeek_handler(config)
-    # stubhub_handler(config)
-    # cross_platform_event_df(config, platforms)
+    spotify_handler(config, spotify_playlists)
+    ticketmaster_handler(config)
+    seatgeek_handler(config)
+    stubhub_handler(config)
+    cross_platform_event_df(config, platforms)
 
 
