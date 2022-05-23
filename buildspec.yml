@@ -10,9 +10,7 @@ phases:
     commands:
       - echo Build started on `date`
       - echo Building the Docker image...
-      - aws s3 cp s3://flippr/keys/.docker.key .docker.key
-      - docker login -u myusername --password-stdin < .docker.key
-      - rm .docker.key
+      - docker login -u whjackso23 -p 502ae8ca-bf3f-4e44-a0e1-951dd5dcf39d
       - docker build -t flippr .
       - docker tag flippr:latest 708302799439.dkr.ecr.us-east-1.amazonaws.com/flippr
   post_build:
