@@ -17,6 +17,6 @@ phases:
     commands:
       - echo Build completed
       - echo Pushing the Docker images...
-      - docker login --u AWS -p $(aws ecr get-login-password --region us-east-1) 708302799439.dkr.ecr.us-east-1.amazonaws.com
+      - docker login -u AWS -p $(aws ecr get-login-password --region us-east-1) 708302799439.dkr.ecr.us-east-1.amazonaws.com
       - docker push 708302799439.dkr.ecr.us-east-1.amazonaws.com/flippr:latest
       - echo Writing definitions file...
