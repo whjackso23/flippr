@@ -1,21 +1,20 @@
 version: 0.2
 
 phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - REPOSITORY_URI=708302799439.dkr.ecr.us-east-1.amazonaws.com/flippr
+      - IMAGE_TAG=latest
   build:
-    pre_build:
-      commands:
-        - echo Logging in to Amazon ECR...
-        - REPOSITORY_URI=708302799439.dkr.ecr.us-east-1.amazonaws.com/flippr
-        - IMAGE_TAG=latest
-    build:
-      commands:
-        - echo Build started on `date`
-        - echo Building the Docker image...
-        - docker build -t flippr:latest .
-        - docker tag flippr:latest 708302799439.dkr.ecr.us-east-1.amazonaws.com/flippr:latest
-    post_build:
-      commands:
-        - echo Build completed
-        - echo Pushing the Docker images...
-        - docker push 708302799439.dkr.ecr.us-east-1.amazonaws.com/flippr:latest
-        - echo Writing definitions file...
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t flippr:latest .
+      - docker tag flippr:latest 708302799439.dkr.ecr.us-east-1.amazonaws.com/flippr:latest
+  post_build:
+    commands:
+      - echo Build completed
+      - echo Pushing the Docker images...
+      - docker push 708302799439.dkr.ecr.us-east-1.amazonaws.com/flippr:latest
+      - echo Writing definitions file...
