@@ -1,7 +1,7 @@
 FROM continuumio/miniconda3:latest
 RUN apt-get update -y
 
-RUN apt-get install -y vim screen htop rsync build-essential
+RUN apt-get idonstall -y vim screen htop rsync build-essential
 
 RUN pip install boto3 black python-dotenv pandas spotipy requests
 
