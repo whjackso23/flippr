@@ -1,0 +1,22 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - REPOSITORY_URI=708302799439.dkr.ecr.us-east-1.amazonaws.com/flippr
+      - IMAGE_TAG=latest
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker login -u whjackso23 -p 502ae8ca-bf3f-4e44-a0e1-951dd5dcf39d
+      - docker build -t flippr .
+      - docker tag flippr:latest 708302799439.dkr.ecr.us-east-1.amazonaws.com/flippr
+  post_build:
+    commands:
+      - echo Build completed
+      - echo Pushing the Docker images...
+      - docker login -u AWS -p $(aws ecr get-login-password --region us-east-1) 708302799439.dkr.ecr.us-east-1.amazonaws.com
+      - docker push 708302799439.dkr.ecr.us-east-1.amazonaws.com/flippr:latest
+      - echo Writing definitions file...
