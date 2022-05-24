@@ -1,5 +1,6 @@
 import datetime as dt
 from flippr.utils.handlers import spotify_handler, ticketmaster_handler, cross_platform_event_df, seatgeek_handler, stubhub_handler
+
 import os
 import argparse
 
@@ -73,5 +74,3 @@ if __name__ == '__main__':
     seatgeek_handler(config)
     stubhub_handler(config)
     cross_platform_event_df(config, platforms)
-
-
